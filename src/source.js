@@ -1,5 +1,18 @@
 var base58 = require('base-58');
 const node = new Ipfs();
+var contractsLoadedPs = new Promise( (resolve, reject)=>{
+  window.addEventListener('contracts_loaded', ()=>{
+    resolve();
+  });
+});
+
+var nodeReadyPs = new Promise((resolve, reject)=>{
+  node.on('ready', () => {
+    resolve();
+  });
+
+});
+
 $(document).ready(function(){
   // Checking i Web3 has been injected by the browser (Mist/MetaMask)
   if (typeof web3 !== 'undefined') {
@@ -59,11 +72,10 @@ $(document).ready(function(){
       }
     },
     mounted: function() {
-      window.addEventListener('contracts_loaded', ()=>{
-        console.log('contracts loaded');
+      Promise.all([contractsLoadedPs, nodeReadyPs]).then(()=>{
+        console.log('Contracts and node are ready!');
         window.loadedContracts[0].addressBooks(web3.eth.accounts[0], (err, res)=>{
-          console.log('Retrieved data from blockchain');
-          node.on('ready', () => {
+            console.log('Retrieved data from blockchain');
             res = res.slice(2);
             var multihash1 = '12';
             var multihash2 = '20';
@@ -75,7 +87,7 @@ $(document).ready(function(){
             }
             var uint8Hash = Uint8Array.from(hashArray);
             var base58Hash = base58.encode(uint8Hash);
-            console.log('IPFS node ready...Searching for ' + base58Hash);
+            console.log('IPFS node searching for ' + base58Hash);
             node.files.cat(base58Hash, (err, result)=>{
               if (err){
                 console.log(err);
@@ -83,13 +95,10 @@ $(document).ready(function(){
               console.log('Retrieved data from IPFS');
               vueInstance.persons = JSON.parse(result);
             });
-          });
         });
       });
     }
   });
-
-
 
   //saving profile
   $('#saveProfile').click( () => {
@@ -102,6 +111,7 @@ $(document).ready(function(){
       if(err){
         console.log(err);
       }
+      console.log('Address book added to IPFS with hash '  + filesAdded[0].hash);
       var decode = base58.decode(filesAdded[0].hash);
       var decodeHex =[]
       decode.map((byte)=>{
@@ -117,6 +127,7 @@ $(document).ready(function(){
         if (err) {
           console.log(err);
         }
+        console.log('IPFS hash saved to the blockchain!');
       });
     });
 
@@ -127,6 +138,8 @@ $(document).ready(function(){
     var newUserTag = $('#newTag').val();
     var newUserAddress = $('#newAddress').val();
     vueInstance.persons.push({'tag':newUserTag, 'address': newUserAddress});
+    $('#newTag').val('');
+    $('#newAddress').val('');
 
   });
 
