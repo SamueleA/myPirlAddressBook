@@ -60,8 +60,9 @@ $(document).ready(function(){
     },
     mounted: function() {
       window.addEventListener('contracts_loaded', ()=>{
-
+        console.log('contracts loaded');
         window.loadedContracts[0].addressBooks(web3.eth.accounts[0], (err, res)=>{
+          console.log('Retrieved data from blockchain');
           node.on('ready', () => {
             res = res.slice(2);
             var multihash1 = '12';
@@ -74,10 +75,12 @@ $(document).ready(function(){
             }
             var uint8Hash = Uint8Array.from(hashArray);
             var base58Hash = base58.encode(uint8Hash);
+            console.log('IPFS node ready...Searching for ' + base58Hash);
             node.files.cat(base58Hash, (err, result)=>{
               if (err){
                 console.log(err);
               }
+              console.log('Retrieved data from IPFS');
               vueInstance.persons = JSON.parse(result);
             });
           });
